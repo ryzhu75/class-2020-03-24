@@ -1,0 +1,75 @@
+---
+title: "class-2020-03-24"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(dplyr)
+library(infer)
+library(gov.1005.data)
+library(broom)
+
+```
+
+```{r train}
+
+train %>% 
+  summarize(avg_income = mean(income))
+
+set.seed(3)
+
+# Creating the initial sample
+
+sample <- sample_n(train, size = 30)
+
+# Resample 1000 times of the above sample of 30
+
+bootstrap <- sample %>% 
+  rep_sample_n(rep = 1000, size = 30, replace = TRUE)
+
+# Summarize mean incomes of each resample
+
+boostrap_mean <- bootstrap %>% 
+  group_by(replicate) %>% 
+  summarize(mean_income = mean(income))
+
+# Scene 4
+
+#**Prompt:** Using the bootstrap sample you create, calculate the 50% confidence interval (using the percentile method) of the true mean income of commuters. What is the meaning of this interval? What does it tell us about the world that we did not know before? Is that the same thing as thinking that there is a 50% chance that, if we were to draw a new commuter at random, that her income would fall within that range? Why or why not? What if, instead of looking at all commuters in the sample, we just looked at the Treated. That is easy to do with a single `filter()`. But would the interpretation of the confidence interval be the same or different?
+
+# Calculate 50% confidence intervals
+
+boostrap_mean %>% 
+      pull(mean_income) %>% 
+      quantile(c(0.25, 0.75))
+
+# Scene 5
+
+#**Prompt:**  Calculate  the difference between the income of treated and control commuters in our sample. We need to subtract the Control average from the Treated average. To do that, having them on the same row is convenient. Recall the `pivot_*` functions. `everything()` is also a cool trick for organizing the order of the variables in a tibble. I like to put the key variable, which would be the income difference in this case, first.
+
+# Calculate difference in income between treated and control for our pulled
+# sample of 30
+
+sample %>% 
+  group_by(treatment) %>% 
+  summarize(mean_income = mean(income)) %>% 
+  pivot_wider(names_from = "treatment", values_from = "mean_income") %>% 
+  mutate(difference = Treated - Control) %>% 
+  select(difference, Treated, Control)
+
+# Calculate difference in income between treated and control for entire dataset
+
+train %>% 
+  group_by(treatment) %>% 
+  summarize(mean_income = mean(income)) %>% 
+  pivot_wider(names_from = "treatment", values_from = "mean_income") %>% 
+  mutate(difference = Treated - Control)
+
+#**Prompt:**  Calculate a 95% confidence interval for the difference between the mean income of treated and control commuters in our sample. Provide a Bayesian and Frequentist interpretation of this interval
+
+
+
+```
